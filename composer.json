@@ -1,0 +1,20 @@
+{
+    "name": "jedlikowski/WP_Router",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jakub Jedlikowski",
+            "email": "jakub.jedlikowski@gmail.com",
+            "homepage": "http://jedli.com",
+            "role": "Developer"
+        }
+    ],
+    "description": "Simple router for defining custom WordPress routes without creating fake pages.",
+    "autoload": {
+        "psr-4" : {
+            "jedlikowski\\WP_Router\\Router" : "src"
+        }
+    },
+    "require" : {
+    	"php" : "^5.4"
+    }
