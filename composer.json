@@ -13,7 +13,7 @@
     },
     "autoload": {
         "psr-0": {
-            "WP_Router": "src/"
+            "jedlikowski\\WP_Router": "src/"
         }
     }
 }
