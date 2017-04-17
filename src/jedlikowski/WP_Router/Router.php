@@ -124,12 +124,17 @@ class Router
             }
 
             if (strpos($routeHandler, "@") === false && is_callable($routeHandler)) {
+
+                do_action("WP_Router_before_render_route", $requestedRoute);
                 call_user_func($routeHandler, $requestedRoute);
                 exit;
             } else {
                 $routeCallback = explode("@", $routeHandler);
+
                 if (class_exists($routeCallback[0]) && !empty($routeCallback[1])) {
                     if (is_callable([$routeCallback[0], $routeCallback[1]])) {
+
+                        do_action("WP_Router_before_render_route", $requestedRoute);
                         call_user_func([$routeCallback[0], $routeCallback[1]], $requestedRoute);
                         exit;
                     }
