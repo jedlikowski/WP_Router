@@ -9,9 +9,9 @@ namespace jedlikowski\WP_Router;
  */
 class Router
 {
-    public $routes = [];
-    public $queryVar = "router_route";
-    public $wildcardRoute = "([a-zA-Z0-9\/-]+)";
+    private $routes = [];
+    private $queryVar = "router_route";
+    private $wildcardRoute = "([a-zA-Z0-9\/-]+)";
 
     /**
      * Router constructor.
@@ -23,7 +23,7 @@ class Router
         if (is_admin()) { // Custom routes are for the front-end only
             return;
         }
-        if (isset ($GLOBALS["WP_Router"])) {
+        if (isset($GLOBALS["WP_Router"])) {
             throw new \Exception("Only one WP_Router instance is allowed.");
         }
 
@@ -112,35 +112,53 @@ class Router
      */
     public function renderRoute()
     {
+        global $post;
+        $post = null;
+
         $requestedRoute = get_query_var($this->queryVar);
-        if ($requestedRoute && !empty($requestedRoute)) {
-
-            $requestedRoute = trailingslashit($requestedRoute);
-            $routeHandler = $this->getRouteHandler($requestedRoute);
-
-            // Route hasn't been found, send 404 header and render 404 template
-            if (!$routeHandler) {
-                self::set404();
-            }
-
-            if (strpos($routeHandler, "@") === false && is_callable($routeHandler)) {
-
-                do_action("WP_Router_before_render_route", $requestedRoute);
-                call_user_func($routeHandler, $requestedRoute);
-                exit;
-            } else {
-                $routeCallback = explode("@", $routeHandler);
-
-                if (class_exists($routeCallback[0]) && !empty($routeCallback[1])) {
-                    if (is_callable([$routeCallback[0], $routeCallback[1]])) {
-
-                        do_action("WP_Router_before_render_route", $requestedRoute);
-                        call_user_func([$routeCallback[0], $routeCallback[1]], $requestedRoute);
-                        exit;
-                    }
-                }
-            }
+        if (!$requestedRoute || empty($requestedRoute)) {
+            return;
         }
+
+        $requestedRoute = trailingslashit($requestedRoute);
+        $routeHandler = $this->getRouteHandler($requestedRoute);
+
+        // Route hasn't been found, send 404 header and render 404 template
+        if (!$routeHandler) {
+            static::set404();
+        }
+
+        if (strpos($routeHandler, "@") === false && is_callable($routeHandler)) {
+            return $this->callRouteHandler($routeHandler, $requestedRoute);
+        }
+        $routeCallback = explode("@", $routeHandler);
+        $class = $routeCallback[0];
+        $method = empty($routeCallback[1]) ? null : $routeCallback[1];
+
+        if (!class_exists($class) || empty($method)) {
+            return;
+        }
+
+        $reflectionClass = new \ReflectionClass($class);
+        if (!$reflectionClass->hasMethod($method)) {
+            return;
+        }
+
+        $methodChecker = new \ReflectionMethod($class, $method);
+        if ($methodChecker->isStatic()) {
+            return $this->callRouteHandler([$class, $method], $requestedRoute);
+        } else {
+            $instance = new $class;
+            return $this->callRouteHandler([$instance, $method], $requestedRoute);
+        }
+    }
+
+    private function callRouteHandler($routeHandler, $route)
+    {
+        $route = '/' . trim($route, '/');
+        do_action("WP_Router_before_render_route", $route);
+        call_user_func($routeHandler, $route);
+        exit;
     }
 
     /**
